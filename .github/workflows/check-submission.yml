@@ -1,0 +1,34 @@
+name: Check Submission File
+
+on: [pull_request]
+
+jobs:
+  check-submission:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Base Repository
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.pull_request.base.ref }}
+        path: 'base_repo'
+
+    - name: Checkout Head Repository
+      uses: actions/checkout@v2
+      with:
+        path: 'head_repo'
+
+    - name: Check for Single File Addition in Submissions
+      run: |
+        # Count added files in the submissions directories
+        num_base=$(ls -l base_repo/submissions | wc -l)
+        num_head=$(ls -l head_repo/submissions | wc -l)
+        # Convert to integers
+        num_base=$(($num_base + 0))
+        num_head=$(($num_head + 0))
+        added_files=$(($num_head - $num_base))
+        echo "Added files count: $added_files"
+        if [ "$added_files" -ne "1" ]; then
+          echo "Error: PR must add exactly one file to 'submissions/'"
+          exit 1
+        fi
