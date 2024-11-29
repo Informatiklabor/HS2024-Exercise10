@@ -12,17 +12,27 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Fetch Base Branch
+      run: git fetch origin ${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}
+
+    - name: Rebase Pull Request on Base Branch
+      run: |
+        git rebase origin/${{ github.event.pull_request.base.ref }} || {
+          echo "Error: Rebase failed. Please rebase your branch locally and resolve conflicts.";
+          exit 1;
+        }
+        
     - name: Check for Exact One File Addition in Submissions
       run: |
         # Ensure that only one file has been added
-        added_files=$(git diff --name-status ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep '^A\s\+submissions/' | wc -l)
+        added_files=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | grep '^A\s\+submissions/' | wc -l)
         if [ "$added_files" -ne 1 ]; then
           echo "Error: PR must add exactly one file to 'submissions/'"
           exit 1
         fi
 
         # Check if there are any other changes to the repository
-        total_changes=$(git diff --name-status ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | wc -l)
+        total_changes=$(git diff --name-status origin/${{ github.event.pull_request.base.ref }}...HEAD | wc -l)
         if [ "$total_changes" -ne "$added_files" ]; then
           echo "Error: PR must not change any files outside 'submissions/'"
           exit 1
